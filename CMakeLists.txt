@@ -5,19 +5,25 @@ cmake_minimum_required(VERSION 3.5)
 project(chygak_lab)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-set(CMAKE_AUTOUIC ON)
-set(CMAKE_AUTOMOC ON)
-set(CMAKE_AUTORCC ON)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-
-
-set (SRCS
-    main.cpp
+include_directories(
+    include
+    src
 )
 
+set (SRCS
+    src/lib.cpp
+    src/lib_realiz.cpp
+)
 
-add_executable(${CMAKE_PROJECT_NAME} ${SRCS})
+set (TESTS
+    tests/test.cpp
+)
 
+add_library(pilo_lib SHARED ${SRCS})
+add_executable(${PROJECT_NAME}_test ${TESTS})
+target_link_libraries(${PROJECT_NAME}_test pilo_lib)
+
+add_custom_target(tests ${PROJECT_NAME}_test)

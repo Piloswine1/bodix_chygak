@@ -1,39 +1,35 @@
-#include <iostream>
-#include <algorithm>
-#include <array>
-#include <list>
+#ifndef LIB_REALIZ_H
+#define LIB_REALIZ_H
 
-struct D
+#include "help_elems.hpp"
+
+std::ostream&  operator<<(std::ostream &o, const elemPos &e)
 {
-    int v, cost;
-};
+    return o<<"{\ti: "<<e.i<<",\n\tj: "<<e.j<<",\n\tval: "<<e.val<<"\n}\n";
+}
 
-const int N = 10;
+template<unsigned long N>
+std::ostream&  operator<<(std::ostream &o, const std::array<int, N> &a)
+{
+    o<<a[0];
+    for(int i = 1; i < N; ++i)
+        o<<",\t"<<a[i];
+    return o;
+}
 
-typedef std::array<std::array<int, N>, N> Matrix;
-typedef std::list<D> Dlist;
-typedef std::list<Dlist> SubPathList;
+template<unsigned long N>
+std::ostream&  operator<<(std::ostream &o, const Matrix<N> &m)
+{
+    o<<"[\n";
+    for (int i = 0; i < N-1; ++i)
+        o<<m[i]<<','<<'\n';
+    o<<m[N-1]<<'\n';
+    o<<']';
+    return o;
+}
 
 namespace VengAlg
 {
-    struct elemPos
-    {
-        int i, j, val;
-        bool operator==(const elemPos &e) const
-        {
-            return (i == e.i && j == e.j);
-        }
-    };
-
-    struct R
-    {
-        int from, to;
-    };
-
-    typedef std::list<R> RList;
-    typedef std::list<int> ListNulled;
-    typedef std::list<elemPos> ListOfElems;
-
     /*
      * Рассматриваем матрицу:
      * (0,1)  ... (0,N)
@@ -42,10 +38,10 @@ namespace VengAlg
      * .            .
      * (N-1,1)... (N-1,N)
      */
-
-    Matrix delete_min_row(const Matrix &mat)
+    template<unsigned long N>
+    Matrix<N> delete_min_row(const Matrix<N> &mat)
     {
-        Matrix retval(mat);
+        Matrix<N> retval(mat);
         // идем по строкам
         for (int i = 0; i < N-1; ++i)
         {
@@ -60,9 +56,10 @@ namespace VengAlg
         return retval;
     }
 
-    Matrix delete_min_col(const Matrix &mat)
+    template<unsigned long N>
+    Matrix<N> delete_min_col(const Matrix<N> &mat)
     {
-        Matrix retval(mat);
+        Matrix<N> retval(mat);
         // идем по столбцам
         for (int j = 1; j < N; ++j)
         {
@@ -85,7 +82,8 @@ namespace VengAlg
     }
 
     // смотрим строки
-    ListOfElems try_row_optimal(const Matrix &mat)
+    template<unsigned long N>
+    ListOfElems try_row_optimal(const Matrix<N> &mat)
     {
         ListOfElems retval, removed;
         for (int i = 0; i < N-1; ++i) {
@@ -113,7 +111,8 @@ namespace VengAlg
     }
 
     // смотрим столбцы
-    ListOfElems try_col_optimal(const Matrix &mat)
+    template<unsigned long N>
+    ListOfElems try_col_optimal(const Matrix<N> &mat)
     {
         ListOfElems retval, removed;
         for (int j = 1; j < N; ++j) {
@@ -140,124 +139,111 @@ namespace VengAlg
         return retval;
     }
 
-    bool isOptimal(const Matrix &mat, const ListOfElems &elems)
+    template<unsigned long N>
+    bool isOptimal(const ListOfElems &elems)
     {
-        RList rlist;
-        for (int i = 0; i < N-1; ++i)
-            for (int j = 1; j < N; ++j)
-                if (mat[i][j] == 0) {
-                    R r{
-                        .from = i,
-                        .to = j
-                    };
-                    rlist.push_back(r);
-                }
-
-        return false;
+        return elems.size() < N-1;
     }
 
-    Matrix to_optimal(const Matrix &mat)
+    template<unsigned long N>
+    Matrix<N> to_optimal(const Matrix<N> &mat)
     {
         //TODO: implement fix
-        return Matrix{0};
+        return Matrix<N>{0};
     }
 
-    SubPathList make_subpathes(const Matrix &mat, const ListOfElems &elems)
+    elemPos findElem(const int &i, const ListOfElems &elems)
+    {
+        for (auto it = elems.begin(); it != elems.end(); ++it)
+            if (i == it->i) return *it;
+        return elemPos{-1,-1,-1};
+    }
+
+    template<unsigned long N>
+    SubPathList make_subpathes(const ListOfElems &elems)
     {
         SubPathList retval;
+        ListOfElems removed;
+        for (int i = 0; i < N-1; ++i) {
+            elemPos elem = findElem(i, elems);
 
+            if (elem.i == -1) {
+                std::cout<<"elem not found:\n";
+                std::cout<<elem;
+                continue;
+            }
+            if (isRemoved(elem, removed))
+                continue;
+
+            Dlist subpath;
+            const int first = elem.i;
+            int next = elem.j;
+            for (; next != first                &&
+                   !isRemoved(elem, removed)    &&
+                   elem.i != -1;
+                 next = elem.j)
+            {
+                subpath.push_back(D{elem.i, elem.val});
+                removed.push_back(elem);
+                elem = findElem(next, elems);
+            }
+            retval.push_back(subpath);
+        }
         return retval;
     }
 
-    SubPathList solve_destination(const Matrix &mat)
+    template<unsigned long N>
+    SubPathList solve_destination(const Matrix<N> &mat)
     {
         // шаг 1
-        const Matrix row = delete_min_row(mat);
-        const Matrix col = delete_min_col(mat);
+        const Matrix<N> row = delete_min_row(mat);
+        const Matrix<N> col = delete_min_col(mat);
 
         // шаг 2
         const ListOfElems row_e = try_row_optimal(row);
         const ListOfElems col_e = try_col_optimal(col);
 
         // если по строкам оптимальней
-        if (isOptimal(row, row_e))
-            return make_subpathes(row, row_e);
+        if (isOptimal<N>(row_e))
+            return make_subpathes<N>(row_e);
 
         // если по столбцам оптимальней
-        if (isOptimal(col, col_e))
-            return make_subpathes(col, col_e);
+        if (isOptimal<N>(col_e))
+            return make_subpathes<N>(col_e);
 
         // шаг 3
-        const Matrix ret{};
+//        const Matrix<N> ret{};
         const ListOfElems ret_elems{};
-        return make_subpathes(ret, ret_elems);
+        return make_subpathes<N>(ret_elems);
     }
 }
 
-namespace Salesman
-{
-
-    void remove_unness(SubPathList &list)
+namespace Util {
+    template<unsigned long N>
+    Matrix<N> make_upper_triangle(const Matrix<N> &mat)
     {
-        for (auto &subpath: list)
-            for (auto it = std::next(subpath.begin()); it != subpath.end();)
-                if (it->cost == 0)
-                    subpath.erase(it);
-                else
-                    ++it;
-    }
-
-    Dlist to_path(const SubPathList &list)
-    {
-        Dlist retval(list.front());
-        // идем с конца до 2-го элемента
-        for (auto it = list.rbegin(); it != std::prev(list.rend()); ++it)
-            // для каждой вершины, добавляем ее в путь
-            for (auto _it = it->begin(); _it != it->end(); ++_it)
-                retval.push_back(*_it);
-        return retval;
-    }
-
-    Dlist solve_path(SubPathList &list)
-    {
-        remove_unness(list);
-        return to_path(list);
-    }
-}
-
-namespace Util
-{
-    Matrix make_upper_triangle(const Matrix &mat)
-    {
-        Matrix retval{0};
+        Matrix<N> retval{0};
         for (int i = 0; i < N; ++i)
             for(int j = 0; j < N; ++j)
                 if (i > j)
                     retval[i][j] = mat[i][j];
         return retval;
     }
-
 }
 
-void printDest(const Dlist &list)
-{
-    std::cout<<list.front().v;
-    for (auto it = std::next(list.begin()); it != list.end(); ++it)
-        std::cout<<", "<<it->v;
-    std::cout<<'\n';
-}
+//int main()
+//{
+//    Matrix<N> arr = {
+//        0,6,10,6,4,0,8,0,0,6,
+//        //TODO: заполнить далее
+//    };
 
-int main()
-{
-    Matrix arr = {
-        0,6,10,6,4,0,8,0,0,6,
-        //TODO: заполнить далее
-    };
+//    Matrix<N> triangle = Util::make_upper_triangle(arr);
+//    SubPathList destination = solve_destination(triangle);
+//    Dlist list = Salesman::solve_path(destination);
+//    printDest(list);
 
-    Matrix triangle = Util::make_upper_triangle(arr);
-    SubPathList destination = VengAlg::solve_destination(triangle);
-    Dlist list = Salesman::solve_path(destination);
-    printDest(list);
+//	return 0;
+//}
 
-	return 0;
-}
+#endif // LIB_REALIZ_H
