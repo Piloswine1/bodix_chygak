@@ -3,6 +3,24 @@
 
 using namespace boost::ut;
 
+suite utils = [] {
+    "transpose"_test = [] {
+        typedef Matrix<3> testMatr;
+        const testMatr in {
+            1,2,3,
+            4,5,6,
+            7,8,9
+        };
+        const testMatr exp {
+            9,6,3,
+            8,5,2,
+            7,4,1
+        };
+        const testMatr ret = in.transpose();
+        expect(eq(ret, exp));
+    };
+};
+
 suite deletes = [] {
     typedef Matrix<5> testMatr;
 

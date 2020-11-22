@@ -3,31 +3,6 @@
 
 #include "help_elems.hpp"
 
-std::ostream&  operator<<(std::ostream &o, const elemPos &e)
-{
-    return o<<"{\ti: "<<e.i<<",\n\tj: "<<e.j<<",\n\tval: "<<e.val<<"\n}\n";
-}
-
-template<unsigned long N>
-std::ostream&  operator<<(std::ostream &o, const std::array<int, N> &a)
-{
-    o<<a[0];
-    for(int i = 1; i < N; ++i)
-        o<<",\t"<<a[i];
-    return o;
-}
-
-template<unsigned long N>
-std::ostream&  operator<<(std::ostream &o, const Matrix<N> &m)
-{
-    o<<"[\n";
-    for (int i = 0; i < N-1; ++i)
-        o<<m[i]<<','<<'\n';
-    o<<m[N-1]<<'\n';
-    o<<']';
-    return o;
-}
-
 namespace VengAlg
 {
     /*
